@@ -2,50 +2,55 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Pong 2 Joueurs</title>
+  <title>Pong Arcade</title>
   <style>
     body {
       margin: 0;
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
+      background: #000;
+      font-family: 'Courier New', monospace;
+      color: #0ff;
     }
 
     #menu, #game-over {
       position: absolute;
       width: 100%;
       height: 100%;
-      background: black;
+      background: #000;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 10;
-    }
-
-    #menu h1, #game-over h1 {
-      margin-bottom: 30px;
+      animation: fadeIn 1s ease-in-out;
     }
 
     button {
       font-size: 20px;
       padding: 10px 30px;
-      cursor: pointer;
+      background: #0ff;
+      color: black;
       border: none;
       border-radius: 10px;
+      cursor: pointer;
     }
 
     canvas {
       display: none;
       background: #111;
+      box-shadow: 0 0 20px #0ff;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
   </style>
 </head>
 <body>
 
 <div id="menu">
-  <h1>🎮 Pong 2 Joueurs</h1>
-  <button onclick="startGame()">Commencer la partie</button>
+  <h1>👾 PONG ARCADE</h1>
+  <button onclick="startGame()">Lancer la partie</button>
 </div>
 
 <div id="game-over" style="display:none;">
@@ -54,6 +59,11 @@
 </div>
 
 <canvas id="pong" width="800" height="500"></canvas>
+
+<!-- 🔊 Sons -->
+<audio id="hit-sound" src="https://freesound.org/data/previews/82/82921_1022651-lq.mp3"></audio>
+<audio id="wall-sound" src="https://freesound.org/data/previews/466/466701_960389-lq.mp3"></audio>
+<audio id="score-sound" src="https://freesound.org/data/previews/341/341695_5260877-lq.mp3"></audio>
 
 <script>
   const canvas = document.getElementById("pong");
@@ -66,6 +76,11 @@
   let score1 = 0, score2 = 0;
   const winningScore = 5;
   let isRunning = false;
+
+  // 🎵 Sons
+  const hitSound = document.getElementById("hit-sound");
+  const wallSound = document.getElementById("wall-sound");
+  const scoreSound = document.getElementById("score-sound");
 
   function resetBall() {
     ball.x = 400;
@@ -87,18 +102,18 @@
   }
 
   function drawText(text, x, y, size = "30px") {
-    ctx.fillStyle = "white";
-    ctx.font = `${size} Arial`;
+    ctx.fillStyle = "#0ff";
+    ctx.font = `${size} 'Courier New', monospace`;
     ctx.fillText(text, x, y);
   }
 
   function draw() {
     ctx.clearRect(0, 0, 800, 500);
-    drawRect(player1.x, player1.y, paddleWidth, paddleHeight, "white");
-    drawRect(player2.x, player2.y, paddleWidth, paddleHeight, "white");
-    drawCircle(ball.x, ball.y, ball.radius, "white");
-    drawText(`Joueur 1: ${score1}`, 50, 40);
-    drawText(`Joueur 2: ${score2}`, 600, 40);
+    drawRect(player1.x, player1.y, paddleWidth, paddleHeight, "#0ff");
+    drawRect(player2.x, player2.y, paddleWidth, paddleHeight, "#0ff");
+    drawCircle(ball.x, ball.y, ball.radius, "#0ff");
+    drawText(`J1: ${score1}`, 40, 40);
+    drawText(`J2: ${score2}`, 700, 40);
   }
 
   function update() {
@@ -107,41 +122,53 @@
     ball.x += ball.dx;
     ball.y += ball.dy;
 
-    if (ball.y < 0 || ball.y > 500) ball.dy *= -1;
+    // Bord haut/bas
+    if (ball.y < 0 || ball.y > 500) {
+      ball.dy *= -1;
+      wallSound.currentTime = 0;
+      wallSound.play();
+    }
 
-    // Collisions
+    // Collision joueur 1
     if (ball.x - ball.radius < player1.x + paddleWidth &&
         ball.y > player1.y && ball.y < player1.y + paddleHeight) {
       ball.dx *= -1;
+      hitSound.currentTime = 0;
+      hitSound.play();
     }
 
+    // Collision joueur 2
     if (ball.x + ball.radius > player2.x &&
         ball.y > player2.y && ball.y < player2.y + paddleHeight) {
       ball.dx *= -1;
+      hitSound.currentTime = 0;
+      hitSound.play();
     }
 
     // Score
     if (ball.x < 0) {
       score2++;
       resetBall();
+      scoreSound.currentTime = 0;
+      scoreSound.play();
     }
 
     if (ball.x > 800) {
       score1++;
       resetBall();
+      scoreSound.currentTime = 0;
+      scoreSound.play();
     }
 
-    // Win condition
+    // Fin
     if (score1 >= winningScore || score2 >= winningScore) {
       isRunning = false;
       showGameOver();
     }
 
-    // Paddle movement
+    // Mouvements
     player1.y += player1.dy;
     player2.y += player2.dy;
-
-    // Bounds
     player1.y = Math.max(0, Math.min(player1.y, 400));
     player2.y = Math.max(0, Math.min(player2.y, 400));
   }
@@ -154,7 +181,7 @@
 
   gameLoop();
 
-  // Controls
+  // 🕹️ Contrôles
   document.addEventListener("keydown", e => {
     switch (e.key) {
       case "w": player1.dy = -5; break;
@@ -187,7 +214,7 @@
   function showGameOver() {
     canvas.style.display = "none";
     document.getElementById("game-over").style.display = "flex";
-    const winner = score1 > score2 ? "Joueur 1 gagne 🏆" : "Joueur 2 gagne 🏆";
+    const winner = score1 > score2 ? "🎉 Joueur 1 gagne !" : "🎉 Joueur 2 gagne !";
     document.getElementById("winner-text").innerText = winner;
   }
 
