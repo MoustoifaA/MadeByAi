@@ -1,241 +1,254 @@
+<!-- Pong Game - Version Finale -->
+<!-- This is a simple Pong game implemented in HTML, CSS, and JavaScript. -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Pong Arcade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong - Version Finale</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      background: #000;
-      font-family: 'Courier New', monospace;
-      color: #0ff;
+      padding: 0;
     }
 
-    #menu, #game-over {
+    body {
+      background: #000;
+      color: #0ff;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #container {
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 16/10;
+      background: #111;
+      box-shadow: 0 0 20px #0ff;
+      position: relative;
+    }
+
+    #menu, #game-over, #difficulty-menu {
       position: absolute;
       width: 100%;
       height: 100%;
-      background: #000;
+      background: rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 10;
-      animation: fadeIn 1s ease-in-out;
+    }
+
+    #game-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 5;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    h1 {
+      margin-bottom: 20px;
     }
 
     button {
-      font-size: 20px;
-      margin: 10px;
-      padding: 10px 30px;
       background: #0ff;
-      color: black;
       border: none;
+      color: #000;
+      font-size: 18px;
+      padding: 10px 20px;
       border-radius: 10px;
       cursor: pointer;
     }
 
-    canvas {
-      display: none;
-      background: #111;
-      box-shadow: 0 0 20px #0ff;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
+  <div id="container">
+    <!-- Menus -->
+    <div id="menu">
+      <h1>PONG VERSUS</h1>
+      <button onclick="selectMode('ai')">Jouer contre l'IA</button>
+      <button onclick="selectMode('2j')">Jouer à 2 joueurs</button>
+    </div>
 
-<div id="menu">
-  <h1>👾 PONG ARCADE</h1>
-  <button onclick="startGame('ia')">Jouer contre l'IA</button>
-  <button onclick="startGame('2j')">Jouer à 2 joueurs</button>
-</div>
+    <div id="difficulty-menu" class="hidden">
+      <h1>Choisir la difficulté</h1>
+      <button onclick="startGame('easy')">Facile</button>
+      <button onclick="startGame('normal')">Normal</button>
+      <button onclick="startGame('hard')">Difficile</button>
+    </div>
 
-<div id="game-over" style="display:none;">
-  <h1 id="winner-text"></h1>
-  <button onclick="restartGame()">Rejouer</button>
-</div>
+    <div id="game-over" class="hidden">
+      <h1 id="winner-text"></h1>
+      <button onclick="restartGame()">Rejouer</button>
+      <button onclick="returnToMenu()">Menu principal</button>
+    </div>
 
-<canvas id="pong" width="800" height="500"></canvas>
+    <!-- Canvas de jeu -->
+    <canvas id="pong" width="800" height="500"></canvas>
 
-<!-- 🔊 Sons -->
-<audio id="hit-sound" src="https://freesound.org/data/previews/82/82921_1022651-lq.mp3"></audio>
-<audio id="wall-sound" src="https://freesound.org/data/previews/466/466701_960389-lq.mp3"></audio>
-<audio id="score-sound" src="https://freesound.org/data/previews/341/341695_5260877-lq.mp3"></audio>
+    <!-- Boutons visibles pendant la partie -->
+    <div id="game-controls" class="hidden">
+      <button onclick="restartGame()">↻ Recommencer</button>
+      <button onclick="returnToMenu()">🏠 Menu</button>
+    </div>
+  </div>
 
-<script>
-  const canvas = document.getElementById("pong");
-  const ctx = canvas.getContext("2d");
+  <script>
+    const canvas = document.getElementById("pong");
+    const ctx = canvas.getContext("2d");
 
-  const paddleWidth = 10, paddleHeight = 100;
-  const player1 = { x: 10, y: 200, dy: 0 };
-  const player2 = { x: 780, y: 200, dy: 0 };
-  const ball = { x: 400, y: 250, radius: 8, dx: 4, dy: 4 };
-  let score1 = 0, score2 = 0;
-  const winningScore = 5;
-  let isRunning = false;
-  let mode = "2j"; // "2j" ou "ia"
+    const paddleWidth = 10, paddleHeight = 100;
+    const player1 = { x: 10, y: 200, dy: 0 };
+    const player2 = { x: 780, y: 200, dy: 0 };
+    const ball = { x: 400, y: 250, radius: 8, dx: 4, dy: 4 };
+    let score1 = 0, score2 = 0;
+    const winningScore = 5;
+    let isRunning = false;
+    let mode = "2j";
+    let difficulty = "normal";
 
-  const hitSound = document.getElementById("hit-sound");
-  const wallSound = document.getElementById("wall-sound");
-  const scoreSound = document.getElementById("score-sound");
-
-  function resetBall() {
-    ball.x = 400;
-    ball.y = 250;
-    ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
-    ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
-  }
-
-  function drawRect(x, y, w, h, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-  }
-
-  function drawCircle(x, y, r, color) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawText(text, x, y, size = "30px") {
-    ctx.fillStyle = "#0ff";
-    ctx.font = `${size} 'Courier New', monospace`;
-    ctx.fillText(text, x, y);
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, 800, 500);
-    drawRect(player1.x, player1.y, paddleWidth, paddleHeight, "#0ff");
-    drawRect(player2.x, player2.y, paddleWidth, paddleHeight, "#0ff");
-    drawCircle(ball.x, ball.y, ball.radius, "#0ff");
-    drawText(`J1: ${score1}`, 40, 40);
-    drawText(`J2: ${score2}`, 700, 40);
-  }
-
-  function update() {
-    if (!isRunning) return;
-
-    ball.x += ball.dx;
-    ball.y += ball.dy;
-
-    if (ball.y < 0 || ball.y > 500) {
-      ball.dy *= -1;
-      wallSound.currentTime = 0;
-      wallSound.play();
+    function resetBall() {
+      ball.x = 400;
+      ball.y = 250;
+      const speed = difficulty === "easy" ? 3 : difficulty === "hard" ? 6 : 4;
+      ball.dx = speed * (Math.random() > 0.5 ? 1 : -1);
+      ball.dy = speed * (Math.random() > 0.5 ? 1 : -1);
     }
 
-    if (ball.x - ball.radius < player1.x + paddleWidth &&
-        ball.y > player1.y && ball.y < player1.y + paddleHeight) {
-      ball.dx *= -1;
-      hitSound.currentTime = 0;
-      hitSound.play();
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
     }
 
-    if (ball.x + ball.radius > player2.x &&
-        ball.y > player2.y && ball.y < player2.y + paddleHeight) {
-      ball.dx *= -1;
-      hitSound.currentTime = 0;
-      hitSound.play();
+    function drawCircle(x, y, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    if (ball.x < 0) {
-      score2++;
+    function drawText(text, x, y, size = "30px") {
+      ctx.fillStyle = "#0ff";
+      ctx.font = `${size} 'Courier New', monospace`;
+      ctx.fillText(text, x, y);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, 800, 500);
+      drawRect(player1.x, player1.y, paddleWidth, paddleHeight, "#0ff");
+      drawRect(player2.x, player2.y, paddleWidth, paddleHeight, "#0ff");
+      drawCircle(ball.x, ball.y, ball.radius, "#0ff");
+      drawText(`J1: ${score1}`, 40, 40);
+      drawText(`J2: ${score2}`, 680, 40);
+    }
+
+    function update() {
+      if (!isRunning) return;
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      if (ball.y < 0 || ball.y > 500) ball.dy *= -1;
+
+      if (ball.x - ball.radius < player1.x + paddleWidth && ball.y > player1.y && ball.y < player1.y + paddleHeight) ball.dx *= -1;
+      if (ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + paddleHeight) ball.dx *= -1;
+
+      if (ball.x < 0) { score2++; resetBall(); }
+      if (ball.x > 800) { score1++; resetBall(); }
+
+      if (score1 >= winningScore || score2 >= winningScore) {
+        isRunning = false;
+        canvas.style.display = "none";
+        document.getElementById("game-controls").classList.add("hidden");
+        document.getElementById("game-over").classList.remove("hidden");
+        document.getElementById("winner-text").innerText = score1 > score2 ? "Joueur 1 gagne !" : "Joueur 2 gagne !";
+      }
+
+      player1.y += player1.dy;
+
+      if (mode === "2j") {
+        player2.y += player2.dy;
+      } else {
+        const aiSpeed = difficulty === "easy" ? 2 : difficulty === "hard" ? 5 : 3;
+        if (ball.y > player2.y + paddleHeight / 2) player2.y += aiSpeed;
+        else player2.y -= aiSpeed;
+      }
+
+      player1.y = Math.max(0, Math.min(player1.y, 400));
+      player2.y = Math.max(0, Math.min(player2.y, 400));
+    }
+
+    function gameLoop() {
+      draw();
+      update();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+
+    document.addEventListener("keydown", e => {
+      switch (e.key) {
+        case "w": player1.dy = -5; break;
+        case "s": player1.dy = 5; break;
+        case "ArrowUp": if (mode === "2j") player2.dy = -5; break;
+        case "ArrowDown": if (mode === "2j") player2.dy = 5; break;
+      }
+    });
+
+    document.addEventListener("keyup", e => {
+      switch (e.key) {
+        case "w": case "s": player1.dy = 0; break;
+        case "ArrowUp": case "ArrowDown": if (mode === "2j") player2.dy = 0; break;
+      }
+    });
+
+    function selectMode(selectedMode) {
+      mode = selectedMode;
+      document.getElementById("menu").classList.add("hidden");
+      document.getElementById("difficulty-menu").classList.remove("hidden");
+    }
+
+    function startGame(selectedDifficulty) {
+      difficulty = selectedDifficulty;
       resetBall();
-      scoreSound.currentTime = 0;
-      scoreSound.play();
+      score1 = score2 = 0;
+      player1.y = player2.y = 200;
+      isRunning = true;
+      canvas.style.display = "block";
+      document.getElementById("difficulty-menu").classList.add("hidden");
+      document.getElementById("game-controls").classList.remove("hidden");
     }
 
-    if (ball.x > 800) {
-      score1++;
-      resetBall();
-      scoreSound.currentTime = 0;
-      scoreSound.play();
+    function restartGame() {
+      startGame(difficulty);
+      document.getElementById("game-over").classList.add("hidden");
     }
 
-    if (score1 >= winningScore || score2 >= winningScore) {
+    function returnToMenu() {
       isRunning = false;
-      showGameOver();
+      score1 = score2 = 0;
+      document.getElementById("game-over").classList.add("hidden");
+      document.getElementById("menu").classList.remove("hidden");
+      canvas.style.display = "none";
+      document.getElementById("game-controls").classList.add("hidden");
     }
-
-    player1.y += player1.dy;
-    if (mode === "2j") {
-      player2.y += player2.dy;
-    } else if (mode === "ia") {
-      // Suivi basique de la balle
-      if (ball.y > player2.y + paddleHeight / 2) player2.y += 3;
-      else player2.y -= 3;
-    }
-
-    player1.y = Math.max(0, Math.min(player1.y, 400));
-    player2.y = Math.max(0, Math.min(player2.y, 400));
-  }
-
-  function gameLoop() {
-    draw();
-    update();
-    requestAnimationFrame(gameLoop);
-  }
-
-  gameLoop();
-
-  // Contrôles
-  document.addEventListener("keydown", e => {
-    switch (e.key) {
-      case "w": player1.dy = -5; break;
-      case "s": player1.dy = 5; break;
-      case "ArrowUp":
-        if (mode === "2j") player2.dy = -5;
-        break;
-      case "ArrowDown":
-        if (mode === "2j") player2.dy = 5;
-        break;
-    }
-  });
-
-  document.addEventListener("keyup", e => {
-    switch (e.key) {
-      case "w":
-      case "s":
-        player1.dy = 0;
-        break;
-      case "ArrowUp":
-      case "ArrowDown":
-        if (mode === "2j") player2.dy = 0;
-        break;
-    }
-  });
-
-  function startGame(selectedMode) {
-    mode = selectedMode;
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = "block";
-    resetBall();
-    isRunning = true;
-  }
-
-  function showGameOver() {
-    canvas.style.display = "none";
-    document.getElementById("game-over").style.display = "flex";
-    const winner = score1 > score2 ? "🎉 Joueur 1 gagne !" : "🎉 Joueur 2 gagne !";
-    document.getElementById("winner-text").innerText = winner;
-  }
-
-  function restartGame() {
-    score1 = 0;
-    score2 = 0;
-    player1.y = 200;
-    player2.y = 200;
-    resetBall();
-    document.getElementById("game-over").style.display = "none";
-    canvas.style.display = "block";
-    isRunning = true;
-  }
-</script>
+  </script>
 </body>
 </html>
