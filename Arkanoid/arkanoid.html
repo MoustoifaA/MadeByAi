@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arkanoid Clone</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #000;
+      color: #0ff;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #container {
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 16 / 10;
+      position: relative;
+      background: #111;
+      box-shadow: 0 0 20px #0ff;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    #menu, #game-over {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+
+    #controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      background: #0ff;
+      border: none;
+      color: #000;
+      font-size: 18px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="arkanoid" width="800" height="500"></canvas>
+
+    <div id="menu">
+      <h1>ARKANOID CLONE</h1>
+      <button onclick="startGame()">Jouer</button>
+    </div>
+
+    <div id="game-over" style="display:none;">
+      <h1>Game Over</h1>
+      <div id="controls">
+        <button onclick="startGame()">Rejouer</button>
+        <button onclick="returnToMenu()">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('arkanoid');
+    const ctx = canvas.getContext('2d');
+
+    const paddle = { x: 350, y: 480, width: 100, height: 10, dx: 0 };
+    const ball = { x: 400, y: 470, radius: 8, speed: 5, dx: 3, dy: -3 };
+    const bricks = [];
+    const brickRowCount = 5;
+    const brickColCount = 8;
+    const brickWidth = 80;
+    const brickHeight = 20;
+    const brickPadding = 10;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 10;
+
+    let isRunning = false;
+
+    function createBricks() {
+      bricks.length = 0;
+      for (let r = 0; r < brickRowCount; r++) {
+        for (let c = 0; c < brickColCount; c++) {
+          const x = c * (brickWidth + brickPadding) + brickOffsetLeft;
+          const y = r * (brickHeight + brickPadding) + brickOffsetTop;
+          bricks.push({ x, y, width: brickWidth, height: brickHeight, broken: false });
+        }
+      }
+    }
+
+    function drawBricks() {
+      bricks.forEach(brick => {
+        if (!brick.broken) {
+          ctx.fillStyle = '#0ff';
+          ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+        }
+      });
+    }
+
+    function drawPaddle() {
+      ctx.fillStyle = '#0ff';
+      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#0ff';
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawPaddle();
+      drawBall();
+    }
+
+    function update() {
+      if (!isRunning) return;
+
+      paddle.x += paddle.dx;
+      paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Wall collisions
+      if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) ball.dx *= -1;
+      if (ball.y < ball.radius) ball.dy *= -1;
+
+      // Paddle collision
+      if (
+        ball.y + ball.radius > paddle.y &&
+        ball.x > paddle.x &&
+        ball.x < paddle.x + paddle.width
+      ) {
+        const collidePoint = ball.x - (paddle.x + paddle.width / 2);
+        const norm = collidePoint / (paddle.width / 2);
+        const angle = norm * Math.PI / 3;
+        ball.dx = ball.speed * Math.sin(angle);
+        ball.dy = -ball.speed * Math.cos(angle);
+      }
+
+      // Brick collision
+      bricks.forEach(brick => {
+        if (!brick.broken &&
+            ball.x > brick.x &&
+            ball.x < brick.x + brick.width &&
+            ball.y > brick.y &&
+            ball.y < brick.y + brick.height) {
+          ball.dy *= -1;
+          brick.broken = true;
+        }
+      });
+
+      // Game over
+      if (ball.y > canvas.height) {
+        isRunning = false;
+        document.getElementById('game-over').style.display = 'flex';
+      }
+    }
+
+    function gameLoop() {
+      draw();
+      update();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      paddle.x = 350;
+      paddle.dx = 0;
+      ball.x = 400;
+      ball.y = 470;
+      ball.dx = 3;
+      ball.dy = -3;
+      createBricks();
+      isRunning = true;
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game-over').style.display = 'none';
+    }
+
+    function returnToMenu() {
+      isRunning = false;
+      document.getElementById('menu').style.display = 'flex';
+      document.getElementById('game-over').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') paddle.dx = -7;
+      else if (e.key === 'ArrowRight') paddle.dx = 7;
+    });
+
+    document.addEventListener('keyup', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') paddle.dx = 0;
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>
