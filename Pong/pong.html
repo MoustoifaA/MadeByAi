@@ -1,4 +1,4 @@
-<!-- Pong Game - Final Version -->
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -160,6 +160,16 @@
       drawText(`J2: ${score2}`, 680, 40);
     }
 
+    function bounceFromPaddle(paddle) {
+      const relativeIntersectY = (paddle.y + paddleHeight / 2) - ball.y;
+      const normalized = relativeIntersectY / (paddleHeight / 2);
+      const bounceAngle = normalized * Math.PI / 4; // max 45°
+      const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+      const direction = ball.x < 400 ? 1 : -1;
+      ball.dx = direction * speed * Math.cos(bounceAngle);
+      ball.dy = speed * -Math.sin(bounceAngle);
+    }
+
     function update() {
       if (!isRunning) return;
       ball.x += ball.dx;
@@ -167,8 +177,8 @@
 
       if (ball.y < 0 || ball.y > 500) ball.dy *= -1;
 
-      if (ball.x - ball.radius < player1.x + paddleWidth && ball.y > player1.y && ball.y < player1.y + paddleHeight) ball.dx *= -1;
-      if (ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + paddleHeight) ball.dx *= -1;
+      if (ball.x - ball.radius < player1.x + paddleWidth && ball.y > player1.y && ball.y < player1.y + paddleHeight) bounceFromPaddle(player1);
+      if (ball.x + ball.radius > player2.x && ball.y > player2.y && ball.y < player2.y + paddleHeight) bounceFromPaddle(player2);
 
       if (ball.x < 0) { score2++; resetBall(); }
       if (ball.x > 800) { score1++; resetBall(); }
@@ -209,9 +219,9 @@
     gameLoop();
 
     document.addEventListener("keydown", e => {
-      if (mode !== "2j") return;
+      if (mode === "ia_vs_ia") return;
       switch (e.key) {
-        case "w": player1.dy = -5; break;
+        case "z": player1.dy = -5; break;
         case "s": player1.dy = 5; break;
         case "ArrowUp": player2.dy = -5; break;
         case "ArrowDown": player2.dy = 5; break;
@@ -219,9 +229,9 @@
     });
 
     document.addEventListener("keyup", e => {
-      if (mode !== "2j") return;
+      if (mode === "ia_vs_ia") return;
       switch (e.key) {
-        case "w": case "s": player1.dy = 0; break;
+        case "z": case "s": player1.dy = 0; break;
         case "ArrowUp": case "ArrowDown": player2.dy = 0; break;
       }
     });
