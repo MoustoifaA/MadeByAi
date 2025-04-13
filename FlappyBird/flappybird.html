@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Bird Clone</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: sans-serif;
             background-color: #000;
@@ -15,6 +21,7 @@
             align-items: center;
             height: 100vh;
         }
+
         #container {
             position: relative;
             width: 100%;
@@ -24,11 +31,20 @@
             box-shadow: 0 0 20px #0ff;
             overflow: hidden;
         }
-        canvas { width: 100%; height: 100%; display: block; }
-        #menu, #game-over {
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #menu,
+        #game-over {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
@@ -36,27 +52,39 @@
             align-items: center;
             z-index: 10;
         }
-        #scoreDisplay, #levelDisplay {
+
+        #scoreDisplay,
+        #levelDisplay {
             position: absolute;
             top: 10px;
             font-size: 18px;
             color: #0ff;
             z-index: 5;
         }
-        #scoreDisplay { left: 10px; }
-        #levelDisplay { right: 10px; }
-        #controls, #ingame-controls {
+
+        #scoreDisplay {
+            left: 10px;
+        }
+
+        #levelDisplay {
+            right: 10px;
+        }
+
+        #controls,
+        #ingame-controls {
             margin-top: 10px;
             display: flex;
             gap: 10px;
             justify-content: center;
         }
+
         #ingame-controls {
             position: absolute;
             bottom: 20px;
             width: 100%;
             display: none;
         }
+
         button {
             background: #0ff;
             border: none;
@@ -66,8 +94,19 @@
             border-radius: 10px;
             cursor: pointer;
         }
+
+        #game-over h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #game-over p {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
+
 <body>
     <div id="container">
         <canvas id="flappy" width="400" height="700"></canvas>
@@ -81,6 +120,8 @@
 
         <div id="game-over" style="display:none;">
             <h1>Game Over</h1>
+            <p>Score: <span id="final-score">0</span></p>
+            <p>Niveau atteint: <span id="final-level">1</span></p>
             <div id="controls">
                 <button onclick="restartGame()">Rejouer</button>
                 <button onclick="returnToMenu()">Menu</button>
@@ -88,8 +129,8 @@
         </div>
 
         <div id="ingame-controls">
-            <button onclick="restartGame()">↻ Recommencer</button>
-            <button onclick="returnToMenu()">🏠 Menu</button>
+            <button onclick="restartGame()">&#10227; Recommencer</button>
+            <button onclick="returnToMenu()">&#127968; Menu</button>
         </div>
     </div>
 
@@ -106,34 +147,49 @@
         const PIPE_WIDTH = 60;
         const MIN_PIPE_INTERVAL = 200;
         const MAX_PIPE_INTERVAL = 350;
-        let bird, pipes, score, level, gameRunning, gameStarted, scrollSpeed, gravity;
+        let bird, pipes, score, level, gameRunning, gameStarted, scrollSpeed, animationFrameId; // Ajout de animationFrameId
 
         function resetGame() {
-            bird = { x: 80, y: 300, width: 30, height: 30, dy: 0 };
+            bird = {  // Créer un nouvel objet bird à chaque réinitialisation
+                x: 80,
+                y: 300,
+                width: 30,
+                height: 30,
+                dy: 0
+            };
             pipes = [];
             score = 0;
             level = 1;
             scrollSpeed = BASE_SPEED;
-            gravity = BASE_GRAVITY;
+            // Pas de réinitialisation explicite de gravity, car on utilise directement BASE_GRAVITY dans update()
             pipes.push(createPipe(canvas.width + Math.random() * (MAX_PIPE_INTERVAL - MIN_PIPE_INTERVAL) + MIN_PIPE_INTERVAL));
             pipes.push(createPipe(pipes[0].x + Math.random() * (MAX_PIPE_INTERVAL - MIN_PIPE_INTERVAL) + MIN_PIPE_INTERVAL));
             pipes.push(createPipe(pipes[1].x + Math.random() * (MAX_PIPE_INTERVAL - MIN_PIPE_INTERVAL) + MIN_PIPE_INTERVAL));
             document.getElementById("scoreDisplay").textContent = `Score: ${score}`;
             document.getElementById("levelDisplay").textContent = `Niveau: ${level}`;
-            gameStarted = false; // Réinitialiser l'état de démarrage
+            gameStarted = false;
+
+            if (animationFrameId) { // Annuler l'animation précédente si elle existe
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = null; // Réinitialiser l'ID d'animation
         }
 
         function createPipe(x) {
             let gap = Math.max(BASE_PIPE_GAP - level * 5, MIN_PIPE_GAP);
             let maxTop = canvas.height - MIN_PIPE_GAP - 200;
             let top = Math.random() * (maxTop - 50) + 50;
-            return { x: x, top: top, gap: gap };
+            return {
+                x: x,
+                top: top,
+                gap: gap
+            };
         }
 
         function update() {
-            if (!gameRunning || !gameStarted) return; // Ne rien faire si le jeu n'a pas démarré
+            if (!gameRunning || !gameStarted) return;
 
-            bird.dy += gravity;
+            bird.dy += BASE_GRAVITY; // Utiliser directement BASE_GRAVITY
             bird.y += bird.dy;
 
             pipes.forEach(pipe => {
@@ -152,14 +208,19 @@
                 pipes.shift();
                 score++;
                 document.getElementById("scoreDisplay").textContent = `Score: ${score}`;
-                let newX = canvas.width + Math.random() * (MAX_PIPE_INTERVAL - MIN_PIPE_INTERVAL) + MIN_PIPE_INTERVAL;
+
+                let lastPipeX = pipes[pipes.length - 1].x;
+                let minDistance = MIN_PIPE_INTERVAL + PIPE_WIDTH;
+                let maxDistance = MAX_PIPE_INTERVAL + PIPE_WIDTH;
+                let newX = lastPipeX + Math.random() * (maxDistance - minDistance) + minDistance;
+
                 pipes.push(createPipe(newX));
 
                 if (score % 5 === 0 && level < 10) {
                     level++;
                     document.getElementById("levelDisplay").textContent = `Niveau: ${level}`;
                     scrollSpeed = BASE_SPEED + (level - 1) * 0.5;
-                    gravity = BASE_GRAVITY + (level - 1) * 0.05;
+                    // Pas de modification de BASE_GRAVITY
                 }
             }
 
@@ -182,7 +243,7 @@
         function loop() {
             update();
             draw();
-            requestAnimationFrame(loop);
+            animationFrameId = requestAnimationFrame(loop); // Stocker l'ID
         }
 
         function startGameMenu() {
@@ -192,14 +253,14 @@
             document.getElementById("menu").style.display = "none";
             document.getElementById("game-over").style.display = "none";
             document.getElementById("ingame-controls").style.display = "flex";
-            draw(); // Afficher l'oiseau immobile
+            draw();
         }
 
-        function startGame() { // Renommé en restartGame pour plus de clarté
+        function startGame() { // Fonction appelée par les boutons "Rejouer"
             gameRunning = true;
             resetGame();
             document.getElementById("game-over").style.display = "none";
-            draw(); // Afficher l'oiseau immobile après avoir rejoué
+            draw();
         }
 
         function restartGame() { // Fonction appelée par les boutons "Rejouer"
@@ -218,6 +279,8 @@
             gameRunning = false;
             document.getElementById("game-over").style.display = "flex";
             document.getElementById("ingame-controls").style.display = "none";
+            document.getElementById("final-score").textContent = score;
+            document.getElementById("final-level").textContent = level;
         }
 
         document.addEventListener("keydown", e => {
@@ -225,7 +288,7 @@
                 if (!gameStarted && gameRunning) {
                     gameStarted = true;
                     bird.dy = (e.key === "ArrowUp") ? JUMP_UP : JUMP_DOWN;
-                    loop(); // Démarrer la boucle au premier mouvement
+                    loop();
                 } else if (gameStarted && gameRunning) {
                     bird.dy = (e.key === "ArrowUp") ? JUMP_UP : JUMP_DOWN;
                 }
@@ -235,4 +298,5 @@
         returnToMenu();
     </script>
 </body>
+
 </html>
