@@ -26,6 +26,7 @@
 
     button {
       font-size: 20px;
+      margin: 10px;
       padding: 10px 30px;
       background: #0ff;
       color: black;
@@ -50,7 +51,8 @@
 
 <div id="menu">
   <h1>👾 PONG ARCADE</h1>
-  <button onclick="startGame()">Lancer la partie</button>
+  <button onclick="startGame('ia')">Jouer contre l'IA</button>
+  <button onclick="startGame('2j')">Jouer à 2 joueurs</button>
 </div>
 
 <div id="game-over" style="display:none;">
@@ -76,8 +78,8 @@
   let score1 = 0, score2 = 0;
   const winningScore = 5;
   let isRunning = false;
+  let mode = "2j"; // "2j" ou "ia"
 
-  // 🎵 Sons
   const hitSound = document.getElementById("hit-sound");
   const wallSound = document.getElementById("wall-sound");
   const scoreSound = document.getElementById("score-sound");
@@ -122,14 +124,12 @@
     ball.x += ball.dx;
     ball.y += ball.dy;
 
-    // Bord haut/bas
     if (ball.y < 0 || ball.y > 500) {
       ball.dy *= -1;
       wallSound.currentTime = 0;
       wallSound.play();
     }
 
-    // Collision joueur 1
     if (ball.x - ball.radius < player1.x + paddleWidth &&
         ball.y > player1.y && ball.y < player1.y + paddleHeight) {
       ball.dx *= -1;
@@ -137,7 +137,6 @@
       hitSound.play();
     }
 
-    // Collision joueur 2
     if (ball.x + ball.radius > player2.x &&
         ball.y > player2.y && ball.y < player2.y + paddleHeight) {
       ball.dx *= -1;
@@ -145,7 +144,6 @@
       hitSound.play();
     }
 
-    // Score
     if (ball.x < 0) {
       score2++;
       resetBall();
@@ -160,15 +158,20 @@
       scoreSound.play();
     }
 
-    // Fin
     if (score1 >= winningScore || score2 >= winningScore) {
       isRunning = false;
       showGameOver();
     }
 
-    // Mouvements
     player1.y += player1.dy;
-    player2.y += player2.dy;
+    if (mode === "2j") {
+      player2.y += player2.dy;
+    } else if (mode === "ia") {
+      // Suivi basique de la balle
+      if (ball.y > player2.y + paddleHeight / 2) player2.y += 3;
+      else player2.y -= 3;
+    }
+
     player1.y = Math.max(0, Math.min(player1.y, 400));
     player2.y = Math.max(0, Math.min(player2.y, 400));
   }
@@ -181,13 +184,17 @@
 
   gameLoop();
 
-  // 🕹️ Contrôles
+  // Contrôles
   document.addEventListener("keydown", e => {
     switch (e.key) {
       case "w": player1.dy = -5; break;
       case "s": player1.dy = 5; break;
-      case "ArrowUp": player2.dy = -5; break;
-      case "ArrowDown": player2.dy = 5; break;
+      case "ArrowUp":
+        if (mode === "2j") player2.dy = -5;
+        break;
+      case "ArrowDown":
+        if (mode === "2j") player2.dy = 5;
+        break;
     }
   });
 
@@ -199,12 +206,13 @@
         break;
       case "ArrowUp":
       case "ArrowDown":
-        player2.dy = 0;
+        if (mode === "2j") player2.dy = 0;
         break;
     }
   });
 
-  function startGame() {
+  function startGame(selectedMode) {
+    mode = selectedMode;
     document.getElementById("menu").style.display = "none";
     canvas.style.display = "block";
     resetBall();
