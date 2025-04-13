@@ -1,64 +1,53 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flappy Bird Like</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird Clone</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #000;
+      font-family: sans-serif;
+      background-color: #000;
       color: #0ff;
-      font-family: 'Courier New', monospace;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
     }
     #container {
       position: relative;
       width: 100%;
-      max-width: 600px;
-      aspect-ratio: 9 / 16;
-      background: #111;
+      max-width: 400px;
+      aspect-ratio: 9/16;
+      background-color: #111;
       box-shadow: 0 0 20px #0ff;
       overflow: hidden;
     }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
+    canvas { width: 100%; height: 100%; display: block; }
     #menu, #game-over {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       z-index: 10;
-    }
-    #controls {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
     }
     #scoreDisplay, #levelDisplay {
       position: absolute;
       top: 10px;
-      font-size: 20px;
+      font-size: 18px;
       color: #0ff;
       z-index: 5;
     }
     #scoreDisplay { left: 10px; }
     #levelDisplay { right: 10px; }
-    #ingame-controls {
+    #controls, #ingame-controls {
+      margin-top: 10px;
       display: flex;
-      justify-content: center;
-      margin: 10px;
       gap: 10px;
     }
     button {
@@ -74,12 +63,12 @@
 </head>
 <body>
   <div id="container">
-    <canvas id="game" width="600" height="800"></canvas>
+    <canvas id="flappy" width="400" height="700"></canvas>
     <div id="scoreDisplay">Score: 0</div>
     <div id="levelDisplay">Niveau: 1</div>
 
     <div id="menu">
-      <h1>FLAPPY BIRD LIKE</h1>
+      <h1>FLAPPY BIRD CLONE</h1>
       <button onclick="startGame()">Jouer</button>
     </div>
 
@@ -98,116 +87,107 @@
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
+    const canvas = document.getElementById("flappy");
     const ctx = canvas.getContext("2d");
-    const gravity = 0.5;
-    let bird, pipes, score, level, speed, isRunning;
 
-    function resetBird() {
-      bird = {
-        x: 100,
-        y: 300,
-        width: 30,
-        height: 30,
-        velocity: 0
-      };
+    const GRAVITY = 0.5;
+    const JUMP = -8;
+    let bird, pipes, score, level, gameRunning;
+
+    function resetGame() {
+      bird = { x: 80, y: 300, width: 30, height: 30, dy: 0 };
+      pipes = [];
+      score = 0;
+      level = 1;
+      spawnPipes();
     }
 
-    function createPipes() {
-      pipes = [];
-      const gap = 150 - level * 5;
+    function spawnPipes() {
+      pipes.length = 0;
       for (let i = 0; i < 3; i++) {
-        const top = Math.random() * 300 + 50;
-        pipes.push({
-          x: 600 + i * 300,
-          top,
-          bottom: top + gap,
-          width: 60
-        });
+        let gap = 140 - level * 5;
+        let top = Math.random() * (canvas.height - gap - 200) + 50;
+        pipes.push({ x: canvas.width + i * 250, top, gap });
       }
     }
 
-    function drawBird() {
-      ctx.fillStyle = "#0ff";
-      ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
-    }
-
-    function drawPipes() {
-      ctx.fillStyle = "#0ff";
-      pipes.forEach(p => {
-        ctx.fillRect(p.x, 0, p.width, p.top);
-        ctx.fillRect(p.x, p.bottom, p.width, canvas.height - p.bottom);
-      });
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBird();
-      drawPipes();
-      document.getElementById("scoreDisplay").innerText = `Score: ${score}`;
-      document.getElementById("levelDisplay").innerText = `Niveau: ${level}`;
-    }
-
     function update() {
-      if (!isRunning) return;
+      if (!gameRunning) return;
 
-      bird.velocity += gravity;
-      bird.y += bird.velocity;
+      bird.dy += GRAVITY;
+      bird.y += bird.dy;
 
-      pipes.forEach(p => {
-        p.x -= speed;
+      pipes.forEach(pipe => {
+        pipe.x -= 2 + level;
 
         if (
-          bird.x < p.x + p.width &&
-          bird.x + bird.width > p.x &&
-          (bird.y < p.top || bird.y + bird.height > p.bottom)
+          bird.x + bird.width > pipe.x &&
+          bird.x < pipe.x + 60 &&
+          (bird.y < pipe.top || bird.y > pipe.top + pipe.gap)
         ) {
-          gameOver();
+          return gameOver();
         }
 
-        if (p.x + p.width < 0) {
-          const top = Math.random() * 300 + 50;
-          const gap = 150 - level * 5;
-          pipes.push({ x: 600, top, bottom: top + gap, width: 60 });
+        if (pipe.x + 60 < 0) {
+          let gap = 140 - level * 5;
+          let top = Math.random() * (canvas.height - gap - 200) + 50;
+          pipes.push({ x: canvas.width, top, gap });
           pipes.shift();
           score++;
           if (score % 5 === 0 && level < 10) level++;
         }
       });
 
-      if (bird.y > canvas.height || bird.y < 0) gameOver();
+      if (bird.y + bird.height > canvas.height || bird.y < 0) gameOver();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw bird
+      ctx.fillStyle = "#0ff";
+      ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+
+      // Draw pipes
+      ctx.fillStyle = "#0ff";
+      pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, 60, pipe.top);
+        ctx.fillRect(pipe.x, pipe.top + pipe.gap, 60, canvas.height);
+      });
+
+      document.getElementById("scoreDisplay").textContent = `Score: ${score}`;
+      document.getElementById("levelDisplay").textContent = `Niveau: ${level}`;
     }
 
     function loop() {
-      draw();
       update();
+      draw();
       requestAnimationFrame(loop);
     }
 
     function startGame() {
-      score = 0;
-      level = 1;
-      speed = 2;
-      isRunning = true;
-      resetBird();
-      createPipes();
+      gameRunning = true;
+      resetGame();
+      draw(); // Affiche immédiatement l'oiseau et les tuyaux
       document.getElementById("menu").style.display = "none";
       document.getElementById("game-over").style.display = "none";
     }
 
-    function gameOver() {
-      isRunning = false;
-      document.getElementById("game-over").style.display = "flex";
-    }
-
     function returnToMenu() {
-      isRunning = false;
+      gameRunning = false;
       document.getElementById("menu").style.display = "flex";
       document.getElementById("game-over").style.display = "none";
     }
 
+    function gameOver() {
+      gameRunning = false;
+      document.getElementById("game-over").style.display = "flex";
+    }
+
     document.addEventListener("keydown", e => {
-      if (e.code === "Space") bird.velocity = -8;
+      if (e.code === "Space" && gameRunning) {
+        bird.dy = JUMP;
+      }
     });
 
     loop();
