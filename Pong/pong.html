@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Pong - Score & Victoire</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas {
+      background: #111;
+    }
+  </style>
+</head>
+<body>
+<canvas id="pong" width="800" height="500"></canvas>
+
+<script>
+  const canvas = document.getElementById("pong");
+  const ctx = canvas.getContext("2d");
+
+  // === Paddle ===
+  const paddleWidth = 10, paddleHeight = 100;
+  const player = { x: 10, y: canvas.height / 2 - 50, dy: 0 };
+  const ai = { x: canvas.width - 20, y: canvas.height / 2 - 50, dy: 3 };
+
+  // === Ball ===
+  const ball = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 8,
+    dx: 4,
+    dy: 4
+  };
+
+  // === Scores ===
+  let playerScore = 0;
+  let aiScore = 0;
+  const winningScore = 5;
+  let gameOver = false;
+
+  function resetBall() {
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.dx *= -1;
+    ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+  }
+
+  function drawRect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  }
+
+  function drawCircle(x, y, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawText(text, x, y, size = "30px") {
+    ctx.fillStyle = "white";
+    ctx.font = `${size} Arial`;
+    ctx.fillText(text, x, y);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawRect(player.x, player.y, paddleWidth, paddleHeight, "white");
+    drawRect(ai.x, ai.y, paddleWidth, paddleHeight, "white");
+    drawCircle(ball.x, ball.y, ball.radius, "white");
+
+    drawText(`Joueur: ${playerScore}`, 50, 40);
+    drawText(`IA: ${aiScore}`, canvas.width - 150, 40);
+
+    if (gameOver) {
+      const winner = playerScore >= winningScore ? "Le joueur gagne !" : "L'IA gagne...";
+      drawText(winner, canvas.width / 2 - 150, canvas.height / 2, "40px");
+    }
+  }
+
+  function update() {
+    if (gameOver) return;
+
+    // === Ball movement ===
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // === Wall bounce ===
+    if (ball.y < 0 || ball.y > canvas.height) ball.dy *= -1;
+
+    // === Paddle collision ===
+    if (
+      ball.x - ball.radius < player.x + paddleWidth &&
+      ball.y > player.y &&
+      ball.y < player.y + paddleHeight
+    ) ball.dx *= -1;
+
+    if (
+      ball.x + ball.radius > ai.x &&
+      ball.y > ai.y &&
+      ball.y < ai.y + paddleHeight
+    ) ball.dx *= -1;
+
+    // === Scoring ===
+    if (ball.x < 0) {
+      aiScore++;
+      resetBall();
+    }
+    if (ball.x > canvas.width) {
+      playerScore++;
+      resetBall();
+    }
+
+    // === Check win ===
+    if (playerScore >= winningScore || aiScore >= winningScore) {
+      gameOver = true;
+    }
+
+    // === AI movement ===
+    if (ball.y > ai.y + paddleHeight / 2) ai.y += ai.dy;
+    else ai.y -= ai.dy;
+
+    // === Player movement ===
+    player.y += player.dy;
+
+    // === Paddle bounds ===
+    player.y = Math.max(Math.min(player.y, canvas.height - paddleHeight), 0);
+    ai.y = Math.max(Math.min(ai.y, canvas.height - paddleHeight), 0);
+  }
+
+  function gameLoop() {
+    draw();
+    update();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // === Controls ===
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") player.dy = -5;
+    else if (e.key === "ArrowDown") player.dy = 5;
+  });
+
+  document.addEventListener("keyup", () => player.dy = 0);
+
+  gameLoop();
+</script>
+</body>
+</html>
