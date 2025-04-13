@@ -66,14 +66,13 @@
   let playerScore = 0, aiScore = 0;
   const winningScore = 5;
   let gameOver = false;
+  let isRunning = false;
 
   function resetBall() {
     ball.x = 400;
     ball.y = 250;
-    ball.dx *= -1;
+    ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
     ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
-    
-    
   }
 
   function drawRect(x, y, w, h, color) {
@@ -104,7 +103,8 @@
   }
 
   function update() {
-    if (gameOver) return;
+    if (!isRunning) return;
+
     ball.x += ball.dx;
     ball.y += ball.dy;
 
@@ -131,6 +131,7 @@
     }
 
     if (playerScore >= winningScore || aiScore >= winningScore) {
+      isRunning = false;
       gameOver = true;
       showGameOver();
     }
@@ -144,14 +145,12 @@
   }
 
   function gameLoop() {
-    console.log(ball.x, ball.y);
-    console.log(ball.dx, ball.dy);
-    
-    
     draw();
     update();
     requestAnimationFrame(gameLoop);
   }
+
+  gameLoop(); // On lance UNE SEULE FOIS
 
   document.addEventListener("keydown", e => {
     if (e.key === "ArrowUp") player.dy = -5;
@@ -163,7 +162,8 @@
   function startGame() {
     document.getElementById("menu").style.display = "none";
     canvas.style.display = "block";
-    gameLoop();
+    resetBall();
+    isRunning = true;
   }
 
   function showGameOver() {
@@ -178,15 +178,10 @@
     aiScore = 0;
     player.y = 200;
     ai.y = 200;
-    ball.x = 400;
-    ball.y = 250;
-    ball.dx = 4;
-    ball.dy = 4;
-    gameOver = false;
-
+    resetBall();
     document.getElementById("game-over").style.display = "none";
     canvas.style.display = "block";
-    gameLoop();
+    isRunning = true;
   }
 </script>
 </body>
