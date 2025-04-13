@@ -1,5 +1,5 @@
-<!-- Pong Game - Version Finale -->
-<!-- This is a simple Pong game implemented in HTML, CSS, and JavaScript. -->
+<!-- Pong Game - Final Version -->
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -20,6 +20,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
       height: 100vh;
       overflow: hidden;
     }
@@ -46,11 +47,8 @@
     }
 
     #game-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
+      margin-top: 10px;
       display: flex;
-      flex-direction: column;
       gap: 10px;
       z-index: 5;
     }
@@ -87,6 +85,7 @@
       <h1>PONG VERSUS</h1>
       <button onclick="selectMode('ai')">Jouer contre l'IA</button>
       <button onclick="selectMode('2j')">Jouer à 2 joueurs</button>
+      <button onclick="selectMode('ia_vs_ia')">IA vs IA</button>
     </div>
 
     <div id="difficulty-menu" class="hidden">
@@ -104,12 +103,12 @@
 
     <!-- Canvas de jeu -->
     <canvas id="pong" width="800" height="500"></canvas>
+  </div>
 
-    <!-- Boutons visibles pendant la partie -->
-    <div id="game-controls" class="hidden">
-      <button onclick="restartGame()">↻ Recommencer</button>
-      <button onclick="returnToMenu()">🏠 Menu</button>
-    </div>
+  <!-- Boutons visibles pendant la partie -->
+  <div id="game-controls" class="hidden">
+    <button onclick="restartGame()">↻ Recommencer</button>
+    <button onclick="returnToMenu()">🏠 Menu</button>
   </div>
 
   <script>
@@ -182,12 +181,18 @@
         document.getElementById("winner-text").innerText = score1 > score2 ? "Joueur 1 gagne !" : "Joueur 2 gagne !";
       }
 
-      player1.y += player1.dy;
+      const aiSpeed = difficulty === "easy" ? 2 : difficulty === "hard" ? 5 : 3;
 
       if (mode === "2j") {
+        player1.y += player1.dy;
         player2.y += player2.dy;
-      } else {
-        const aiSpeed = difficulty === "easy" ? 2 : difficulty === "hard" ? 5 : 3;
+      } else if (mode === "ai") {
+        player1.y += player1.dy;
+        if (ball.y > player2.y + paddleHeight / 2) player2.y += aiSpeed;
+        else player2.y -= aiSpeed;
+      } else if (mode === "ia_vs_ia") {
+        if (ball.y > player1.y + paddleHeight / 2) player1.y += aiSpeed;
+        else player1.y -= aiSpeed;
         if (ball.y > player2.y + paddleHeight / 2) player2.y += aiSpeed;
         else player2.y -= aiSpeed;
       }
@@ -204,18 +209,20 @@
     gameLoop();
 
     document.addEventListener("keydown", e => {
+      if (mode !== "2j") return;
       switch (e.key) {
         case "w": player1.dy = -5; break;
         case "s": player1.dy = 5; break;
-        case "ArrowUp": if (mode === "2j") player2.dy = -5; break;
-        case "ArrowDown": if (mode === "2j") player2.dy = 5; break;
+        case "ArrowUp": player2.dy = -5; break;
+        case "ArrowDown": player2.dy = 5; break;
       }
     });
 
     document.addEventListener("keyup", e => {
+      if (mode !== "2j") return;
       switch (e.key) {
         case "w": case "s": player1.dy = 0; break;
-        case "ArrowUp": case "ArrowDown": if (mode === "2j") player2.dy = 0; break;
+        case "ArrowUp": case "ArrowDown": player2.dy = 0; break;
       }
     });
 
